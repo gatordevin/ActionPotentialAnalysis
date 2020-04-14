@@ -7,7 +7,7 @@ import models
 import os
 
 #DATA PREPROCESSING
-data_by_paramters, data_parameters = utils.read_data("APData.csv") #Read in CSV data into two lists. First contains the data organized by different action potential firign paramters. Second contains a list of the firing paramters used.
+data_by_paramters, data_parameters = utils.read_data("trainingDataOnlyKFixed.csv") #Read in CSV data into two lists. First contains the data organized by different action potential firign paramters. Second contains a list of the firing paramters used.
 cropped_data_by_paramters = utils.crop_data(data_by_paramters,1000) #Crop data of constant voltage
 rand_data_by_parameters, rand_data_parameters = utils.randomize_data(cropped_data_by_paramters, data_parameters) #Randomize the dataset in a way that keeps the parameters and firing data associated with those paramters at the same index
 scaled_rand_data_by_parameters = utils.scale_data_using_data_removal(rand_data_by_parameters,2) #Shrink the random data to be smaller
@@ -18,17 +18,23 @@ tensor_parameters = torch.from_numpy(parameters_split).float() #Convert paramter
 
 #CREATE MODEL
 time_series_dims = normalized_data[0].ndim #Get size of time series data recordings in this case it is only voltage
-LSTM_hidden_layer = 400 #How many LSTMS are in this layer
+LSTM_hidden_layer = 200 #How many LSTMS are in this layer
 num_of_parameters = parameters_split[0].size #Get number of parameters that need to be predicted
 learning_rate = 0.000001 #Learning rate for model
-epochs=4000 #How many times will the model go through the data
-model_save_increments = 100 #How often will loss be measured and will the model be saved
+epochs=2000 #How many times will the model go through the data
+model_save_increments = 50 #How often will loss be measured and will the model be saved
+time_series_length = len(normalized_data[0])
+hidden_layer_size = 500
+num_of_layers = 1
 
-model_type = "models/SingleLSTMLayer"
+model_type = "models/LSTMDeepModel"
 path = model_type + "_" + str(LSTM_hidden_layer) + "_" + str(learning_rate) + "/"
 if not os.path.isdir(path):
     os.mkdir(path)
-model = models.SingleLSTMLayer(input_size=time_series_dims, hidden_layer_size=LSTM_hidden_layer, output_size=num_of_parameters)
+#model = models.SingleLSTMLayer(input_size=time_series_dims, hidden_layer_size=LSTM_hidden_layer, output_size=num_of_parameters)
+#model = models.FullyConnectedModel(input_size=time_series_length,hidden_size=hidden_layer_size,num_of_hidden_layers=num_of_layers,output_size=num_of_parameters)
+model = models.LSTMDeepModel(input_size=time_series_dims, hidden_layer_size=LSTM_hidden_layer, output_size=2)
+print(model)
 model.cuda()
 loss_function = nn.MSELoss().cuda() #Define the type of loss function the model will use for training
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate) #Create the optimizer object
